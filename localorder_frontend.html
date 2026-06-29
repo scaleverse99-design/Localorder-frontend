@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LocalOrder — Order Direct, No Commission</title>
+<style>
+/* ── TOKENS ── */
+:root {
+  --saffron: #F5A623;
+  --saffron-dim: #C47D0E;
+  --saffron-glow: rgba(245,166,35,0.15);
+  --bg: #0E0E0E;
+  --bg-card: #181410;
+  --bg-card2: #1F1A14;
+  --text: #F0EDE8;
+  --text-muted: #7A7268;
+  --text-dim: #4A443C;
+  --green: #2ECC71;
+  --green-dim: rgba(46,204,113,0.12);
+  --red: #E74C3C;
+  --border: rgba(245,166,35,0.12);
+  --border-dim: rgba(255,255,255,0.06);
+  --r: 10px;
+  --r-sm: 6px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(14,14,14,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-dim);
+  padding: 0 16px;
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  font-size: 17px; font-weight: 800;
+  letter-spacing: -0.5px; color: var(--text);
+}
+.logo span { color: var(--saffron); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-btn {
+  padding: 6px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; cursor: pointer; border: none;
+}
+.btn-ghost {
+  background: transparent; color: var(--text-muted);
+  border: 1px solid var(--border-dim);
+}
+.btn-primary {
+  background: var(--saffron); color: #0E0E0E;
+}
+.btn-primary:hover { background: #e8971f; }
+
+/* ── HERO ── */
+.hero {
+  padding: 28px 16px 20px;
+  text-align: center;
+  position: relative;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--saffron-glow);
+  border: 1px solid rgba(245,166,35,0.25);
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 11px; font-weight: 600;
+  color: var(--saffron); letter-spacing: 0.5px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+.hero-eyebrow::before {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--saffron);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.4; transform:scale(0.7); }
+}
+.hero-title {
+  font-size: 28px; font-weight: 800;
+  line-height: 1.15; letter-spacing: -1px;
+  color: var(--text); margin-bottom: 8px;
+}
+.hero-title em {
+  font-style: normal; color: var(--saffron);
+  display: block;
+}
+.hero-sub {
+  font-size: 13px; color: var(--text-muted);
+  line-height: 1.5; margin-bottom: 20px;
+  max-width: 300px; margin-left: auto; margin-right: auto;
+}
+
+/* ── GEO RING (signature element) ── */
+.geo-container {
+  position: relative; width: 80px; height: 80px;
+  margin: 0 auto 20px;
+}
+.geo-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(245,166,35,0.2);
+  animation: geo-expand 2.4s ease-out infinite;
+}
+.geo-ring:nth-child(2) { animation-delay: 0.8s; }
+.geo-ring:nth-child(3) { animation-delay: 1.6s; }
+@keyframes geo-expand {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.geo-center {
+  position: absolute; inset: 50%; transform: translate(-50%,-50%);
+  width: 36px; height: 36px;
+  background: var(--saffron-glow);
+  border: 1.5px solid var(--saffron);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+}
+
+/* ── SEARCH + LOCATION ── */
+.search-wrap { padding: 0 16px 6px; }
+.location-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r) var(--r) 0 0;
+  cursor: pointer;
+}
+.location-icon { font-size: 16px; }
+.location-text { flex: 1; }
+.location-text .loc-label { font-size: 10px; color: var(--text-muted); }
+.location-text .loc-val { font-size: 13px; font-weight: 600; color: var(--text); }
+.location-change { font-size: 11px; color: var(--saffron); font-weight: 600; }
+.search-box {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border-dim);
+  border-top: none;
+  border-radius: 0 0 var(--r) var(--r);
+}
+.search-box input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: 14px; color: var(--text);
+  font-family: inherit;
+}
+.search-box input::placeholder { color: var(--text-dim); }
+.search-icon { color: var(--text-dim); font-size: 16px; }
+.search-btn {
+  background: var(--saffron); color: #0E0E0E;
+  border: none; border-radius: var(--r-sm);
+  padding: 7px 14px; font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+
+/* ── AD ZONE (clearly marked, non-intrusive) ── */
+.ad-zone {
+  margin: 14px 16px;
+  padding: 10px 14px;
+  background: #141210;
+  border: 1px dashed rgba(255,255,255,0.08);
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 60px;
+}
+.ad-zone-label {
+  font-size: 10px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.ad-zone-text {
+  font-size: 11px; color: var(--text-dim); text-align: center;
+}
+
+/* ── CATEGORY PILLS ── */
+.cat-scroll {
+  padding: 0 16px 14px;
+  display: flex; gap: 8px; overflow-x: auto;
+  scrollbar-width: none;
+}
+.cat-scroll::-webkit-scrollbar { display: none; }
+.cat-pill {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border-dim);
+  background: var(--bg-card); color: var(--text-muted);
+  transition: all 0.15s; white-space: nowrap;
+}
+.cat-pill.active {
+  background: var(--saffron-glow);
+  border-color: var(--saffron);
+  color: var(--saffron);
+}
+.cat-pill:hover:not(.active) { border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+/* ── SECTION HEADER ── */
+.sec-header {
+  padding: 0 16px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sec-title { font-size: 15px; font-weight: 700; }
+.sec-sub { font-size: 11px; color: var(--text-muted); }
+.sec-link { font-size: 12px; color: var(--saffron); font-weight: 600; }
+
+/* ── RESTAURANT CARDS ── */
+.cards-list { padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.r-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r);
+  overflow: hidden; cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+  position: relative;
+}
+.r-card:hover { border-color: var(--border); transform: translateY(-1px); }
+.r-card.featured { border-color: rgba(245,166,35,0.3); }
+
+.featured-badge {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  background: var(--saffron); color: #0E0E0E;
+  font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 3px 7px; border-radius: 4px;
+}
+
+.r-img {
+  width: 100%; height: 130px;
+  background: var(--bg-card2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 50px; position: relative; overflow: hidden;
+}
+.r-img-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(14,14,14,0.8));
+}
+.r-img-bottom {
+  position: absolute; bottom: 8px; right: 10px;
+  display: flex; align-items: center; gap: 4px;
+}
+.r-rating {
+  background: rgba(14,14,14,0.85);
+  border: 1px solid rgba(245,166,35,0.3);
+  border-radius: 4px; padding: 2px 7px;
+  font-size: 11px; font-weight: 700; color: var(--saffron);
+}
+.r-eta {
+  background: rgba(14,14,14,0.85);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px; padding: 2px 7px;
+  font-size: 11px; font-weight: 600; color: var(--text);
+}
+
+.r-body { padding: 12px 14px; }
+.r-name {
+  font-size: 15px; font-weight: 800;
+  letter-spacing: -0.3px; color: var(--text);
+  margin-bottom: 3px; text-transform: uppercase;
+  font-feature-settings: 'tnum';
+}
+.r-cuisine { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.r-meta {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+}
+.r-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--text-muted);
+}
+.r-tag .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-dim); }
+.r-avail {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+}
+.r-avail.open { color: var(--green); }
+.r-avail.closed { color: var(--red); }
+.avail-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.avail-dot.open {
+  background: var(--green);
+  box-shadow: 0 0 0 2px var(--green-dim);
+}
+.avail-dot.closed { background: var(--red); }
+
+.r-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-dim);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.r-price { font-size: 12px; color: var(--text-muted); }
+.r-price strong { color: var(--text); }
+.r-order-btn {
+  background: var(--saffron); color: #0E0E0E;
+  border: none; border-radius: var(--r-sm);
+  padding: 7px 16px; font-size: 12px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.2px;
+  transition: background 0.15s;
+}
+.r-order-btn:hover { background: #e8971f; }
+.r-closed-btn {
+  background: var(--bg-card2); color: var(--text-dim);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-sm);
+  padding: 7px 16px; font-size: 12px; font-weight: 600;
+  cursor: not-allowed;
+}
+
+/* ── DISTANCE RING INDICATOR ── */
+.dist-ring {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 10px;
+}
+.dist-ring.near { background: var(--green-dim); color: var(--green); }
+.dist-ring.mid { background: rgba(245,166,35,0.1); color: var(--saffron); }
+.dist-ring.far { background: rgba(231,76,60,0.1); color: #e87060; }
+
+/* ── NO MORE / GEO CUTOFF ── */
+.geo-cutoff {
+  margin: 20px 16px;
+  background: #141210;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r);
+  padding: 20px;
+  text-align: center;
+}
+.geo-cutoff-icon { font-size: 28px; margin-bottom: 8px; }
+.geo-cutoff-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.geo-cutoff-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5; }
+.waitlist-row { display: flex; gap: 8px; }
+.waitlist-input {
+  flex: 1; background: var(--bg-card2);
+  border: 1px solid var(--border-dim); border-radius: var(--r-sm);
+  padding: 9px 12px; font-size: 13px; color: var(--text);
+  font-family: inherit; outline: none;
+}
+.waitlist-input:focus { border-color: var(--saffron); }
+.waitlist-btn {
+  background: var(--saffron); color: #0E0E0E;
+  border: none; border-radius: var(--r-sm);
+  padding: 9px 14px; font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+}
+
+/* ── BOTTOM AD ── */
+.ad-bottom {
+  margin: 14px 16px 0;
+  padding: 14px;
+  background: #141210;
+  border: 1px dashed rgba(255,255,255,0.07);
+  border-radius: var(--r-sm);
+  text-align: center;
+  min-height: 90px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+}
+
+/* ── FOOTER ── */
+.footer {
+  margin-top: 24px;
+  padding: 20px 16px 32px;
+  border-top: 1px solid var(--border-dim);
+}
+.footer-logo { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+.footer-logo span { color: var(--saffron); }
+.footer-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+.footer-links {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  margin-bottom: 16px;
+}
+.footer-link { font-size: 12px; color: var(--text-muted); text-decoration: none; }
+.footer-partner {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--saffron-glow); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 8px 14px;
+  font-size: 12px; font-weight: 600; color: var(--saffron);
+  cursor: pointer; text-decoration: none;
+}
+.footer-copy { font-size: 10px; color: var(--text-dim); margin-top: 16px; }
+
+/* ── MODAL (restaurant page preview) ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.85);
+  display: none; align-items: flex-end;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  width: 100%; max-height: 88vh;
+  background: var(--bg-card);
+  border-radius: 16px 16px 0 0;
+  overflow-y: auto;
+  animation: slide-up 0.25s ease-out;
+}
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.modal-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--border-dim); margin: 12px auto 0;
+}
+.modal-header { padding: 14px 16px 0; }
+.modal-subdomain {
+  font-size: 11px; color: var(--saffron); font-weight: 600; margin-bottom: 4px;
+}
+.modal-name { font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; }
+.modal-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.modal-body { padding: 14px 16px; }
+.modal-section { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 14px 0 8px; }
+.menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border-dim);
+  gap: 12px;
+}
+.menu-item:last-child { border: none; }
+.menu-item-info { flex: 1; }
+.menu-item-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.menu-item-desc { font-size: 11px; color: var(--text-muted); }
+.menu-item-price { font-size: 14px; font-weight: 700; color: var(--saffron); }
+.menu-item-add {
+  background: var(--saffron-glow); color: var(--saffron);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 5px 12px; font-size: 12px; font-weight: 700;
+  cursor: pointer; flex-shrink: 0;
+}
+.modal-order-bar {
+  position: sticky; bottom: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-dim);
+  padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.cart-summary { font-size: 13px; }
+.cart-summary strong { color: var(--saffron); }
+.pay-btn {
+  background: var(--saffron); color: #0E0E0E;
+  border: none; border-radius: var(--r-sm);
+  padding: 11px 20px; font-size: 13px; font-weight: 800;
+  cursor: pointer; letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+/* ── STATES ── */
+.loading-shimmer {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card2) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #1a1a1a; border: 1px solid var(--border-dim);
+  border-radius: 20px; padding: 10px 18px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  z-index: 300; white-space: nowrap;
+  display: none; align-items: center; gap: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.show { display: flex; animation: toast-in 0.2s ease-out; }
+@keyframes toast-in { from { opacity:0; transform:translate(-50%,10px); } to { opacity:1; transform:translate(-50%,0); } }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">Local<span>Order</span></div>
+  <div class="topbar-right">
+    <button class="topbar-btn btn-ghost" onclick="showToast('🏪 Partner login coming soon')">For Restaurants</button>
+    <button class="topbar-btn btn-primary" onclick="openModal(restaurants[0])">Order Now</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Live in Hyderabad &amp; Vizag</div>
+  <div class="geo-container">
+    <div class="geo-ring"></div>
+    <div class="geo-ring"></div>
+    <div class="geo-ring"></div>
+    <div class="geo-center">🍛</div>
+  </div>
+  <h1 class="hero-title">
+    Food near you.
+    <em>No app. No commission.</em>
+  </h1>
+  <p class="hero-sub">Order directly from local restaurants. Pay via GPay. Food stays hot — max 15 km delivery.</p>
+</div>
+
+<!-- SEARCH -->
+<div class="search-wrap">
+  <div class="location-row" onclick="showToast('📍 Using your location — Madhapur, Hyderabad')">
+    <span class="location-icon">📍</span>
+    <div class="location-text">
+      <div class="loc-label">Delivering to</div>
+      <div class="loc-val">Madhapur, Hyderabad</div>
+    </div>
+    <span class="location-change">Change</span>
+  </div>
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Search biryani, pizza, Chinese…" id="search-input" oninput="filterCards()">
+    <button class="search-btn">Search</button>
+  </div>
+</div>
+
+<!-- AD ZONE 1: Banner -->
+<div class="ad-zone">
+  <div>
+    <div class="ad-zone-label">Advertisement</div>
+    <div class="ad-zone-text">Google AdSense — 728×90 banner<br>Food &amp; beverage advertisers · ₹250 RPM</div>
+  </div>
+</div>
+
+<!-- CATEGORIES -->
+<div class="cat-scroll" id="cat-row">
+  <div class="cat-pill active" onclick="filterCat('all',this)">🍽 All</div>
+  <div class="cat-pill" onclick="filterCat('biryani',this)">🍛 Biryani</div>
+  <div class="cat-pill" onclick="filterCat('chinese',this)">🥢 Chinese</div>
+  <div class="cat-pill" onclick="filterCat('pizza',this)">🍕 Pizza</div>
+  <div class="cat-pill" onclick="filterCat('south',this)">🥘 South Indian</div>
+  <div class="cat-pill" onclick="filterCat('snacks',this)">🧆 Snacks</div>
+  <div class="cat-pill" onclick="filterCat('desserts',this)">🍮 Desserts</div>
+</div>
+
+<!-- FEATURED (0–5km) -->
+<div class="sec-header">
+  <div>
+    <div class="sec-title">Featured near you</div>
+    <div class="sec-sub">0–5 km · 5–20 min delivery</div>
+  </div>
+  <span class="sec-link">See all</span>
+</div>
+<div class="cards-list" id="cards-container"></div>
+
+<!-- AD ZONE 2: In-feed -->
+<div class="ad-zone" style="min-height:80px; margin-top: 14px;">
+  <div>
+    <div class="ad-zone-label">Sponsored</div>
+    <div class="ad-zone-text">In-feed AdSense unit · Native format<br>Appears between restaurant listings</div>
+  </div>
+</div>
+
+<!-- MORE RESTAURANTS (5–15km) -->
+<div class="sec-header" style="margin-top:8px">
+  <div>
+    <div class="sec-title">More nearby</div>
+    <div class="sec-sub">5–15 km · 20–45 min delivery</div>
+  </div>
+</div>
+<div class="cards-list" id="cards-far"></div>
+
+<!-- GEO CUTOFF -->
+<div class="geo-cutoff">
+  <div class="geo-cutoff-icon">📍</div>
+  <div class="geo-cutoff-title">That's all within 15 km</div>
+  <div class="geo-cutoff-sub">We cap delivery at 15 km so your food arrives hot. Drop your pincode — we'll notify you when we expand to your area.</div>
+  <div class="waitlist-row">
+    <input type="text" class="waitlist-input" placeholder="Your pincode e.g. 500081" maxlength="6">
+    <button class="waitlist-btn" onclick="showToast('✅ Waitlisted! We'll notify you.')">Notify me</button>
+  </div>
+</div>
+
+<!-- BOTTOM AD -->
+<div class="ad-bottom">
+  <div class="ad-zone-label">Advertisement</div>
+  <div class="ad-zone-text" style="font-size:11px;color:#3a3530">Google AdSense · 320×90 mobile banner<br>Placed below fold · high viewability</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-logo">Local<span>Order</span></div>
+  <div class="footer-sub">Commission-free ordering for local restaurants.<br>No app download. No data tracking. Pay via GPay.</div>
+  <div class="footer-links">
+    <a class="footer-link" href="#">About</a>
+    <a class="footer-link" href="#">Privacy</a>
+    <a class="footer-link" href="#">Terms</a>
+    <a class="footer-link" href="#">Contact</a>
+    <a class="footer-link" href="#">Blog</a>
+  </div>
+  <a class="footer-partner" href="#" onclick="showToast('🏪 Partner onboarding coming soon!')">
+    🏪 List your restaurant — ₹1,500/month
+  </a>
+  <div class="footer-copy">© 2026 LocalOrder · Part of ScaleVerse · Made in India 🇮🇳</div>
+</div>
+
+<!-- RESTAURANT MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-body">
+    <div class="modal-handle"></div>
+    <div class="modal-header" id="modal-header"></div>
+    <div class="modal-body" id="modal-content"></div>
+    <div class="modal-order-bar">
+      <div class="cart-summary" id="cart-summary">0 items · <strong>₹0</strong></div>
+      <button class="pay-btn" onclick="showToast('💳 Opening GPay…')">Pay via GPay →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const restaurants = [
+  {
+    id:'chinesebowl', slug:'chinesebowl', name:'Chinese Bowl',
+    cuisine:'Chinese · Indo-Chinese', emoji:'🥢',
+    rating:'4.6', dist:1.2, eta:'12–18', open:true,
+    featured:true, avgPrice:180,
+    cat:'chinese',
+    menu:[
+      {name:'Veg Hakka Noodles',desc:'Tossed with fresh vegetables, soy sauce',price:120},
+      {name:'Chicken Chowmein',desc:'Wok-tossed, egg noodles, dark soy',price:160},
+      {name:'Manchurian (Dry)',desc:'Crispy balls, tangy Manchurian gravy',price:140},
+      {name:'Fried Rice (Egg)',desc:'Wok egg fried rice, spring onion',price:130},
+      {name:'Sweet & Sour Veg',desc:'Mixed vegetables in sweet sour sauce',price:150},
+    ]
+  },
+  {
+    id:'spicebowl', slug:'spicebowl', name:'Spice Bowl',
+    cuisine:'Biryani · North Indian', emoji:'🍛',
+    rating:'4.8', dist:2.4, eta:'20–28', open:true,
+    featured:true, avgPrice:280,
+    cat:'biryani',
+    menu:[
+      {name:'Chicken Biryani',desc:'Dum cooked, saffron rice, raita',price:280},
+      {name:'Mutton Biryani',desc:'Slow cooked, aromatic spices',price:340},
+      {name:'Paneer Biryani',desc:'Fresh paneer, basmati, dum style',price:240},
+      {name:'Dal Khichdi',desc:'Comfort food, ghee tadka',price:120},
+    ]
+  },
+  {
+    id:'pizzaparadise', slug:'pizzaparadise', name:'Pizza Paradise',
+    cuisine:'Pizza · Italian', emoji:'🍕',
+    rating:'4.3', dist:3.8, eta:'22–30', open:false,
+    featured:false, avgPrice:320,
+    cat:'pizza',
+    menu:[
+      {name:'Margherita',desc:'Classic tomato, fresh mozzarella, basil',price:240},
+      {name:'Chicken BBQ',desc:'Smoked chicken, BBQ sauce, onions',price:320},
+      {name:'Veg Supreme',desc:'Loaded with seasonal vegetables',price:280},
+    ]
+  },
+  {
+    id:'southstar', slug:'southstar', name:'South Star Kitchen',
+    cuisine:'South Indian · Andhra', emoji:'🥘',
+    rating:'4.7', dist:4.1, eta:'18–25', open:true,
+    featured:false, avgPrice:150,
+    cat:'south',
+    menu:[
+      {name:'Ghee Roast Dosa',desc:'Crispy, served with 3 chutneys',price:120},
+      {name:'Pesarattu',desc:'Green moong dosa, ginger chutney',price:100},
+      {name:'Andhra Thali',desc:'Rice, dal, sabzi, papad, pickle',price:200},
+      {name:'Filter Coffee',desc:'South Indian drip, decoction',price:40},
+    ]
+  },
+  {
+    id:'snackshack', slug:'snackshack', name:'Snack Shack',
+    cuisine:'Snacks · Street Food', emoji:'🧆',
+    rating:'4.5', dist:7.2, eta:'28–38', open:true,
+    featured:false, avgPrice:80,
+    cat:'snacks',
+    menu:[
+      {name:'Samosa (2 pc)',desc:'Crispy, spiced potato filling, mint chutney',price:40},
+      {name:'Pav Bhaji',desc:'Buttered pav, spiced bhaji',price:80},
+      {name:'Vada Pav',desc:'Mumbai style, green chutney',price:35},
+    ]
+  },
+  {
+    id:'desertdreams', slug:'desertdreams', name:'Desert Dreams',
+    cuisine:'Desserts · Sweets', emoji:'🍮',
+    rating:'4.4', dist:11.5, eta:'38–48', open:true,
+    featured:false, avgPrice:120,
+    cat:'desserts',
+    menu:[
+      {name:'Gulab Jamun (4pc)',desc:'Soft, syrup soaked',price:80},
+      {name:'Rasmalai',desc:'Cottage cheese, saffron milk',price:120},
+      {name:'Brownie with Ice Cream',desc:'Warm brownie, vanilla scoop',price:150},
+    ]
+  },
+];
+
+let activeCat = 'all';
+let cartTotal = 0;
+let cartItems = 0;
+
+function distRing(dist) {
+  if (dist <= 5)  return { cls:'near', label:`${dist} km` };
+  if (dist <= 10) return { cls:'mid',  label:`${dist} km` };
+  return { cls:'far', label:`${dist} km` };
+}
+
+function renderCard(r) {
+  const ring = distRing(r.dist);
+  return `
+  <div class="r-card${r.featured?' featured':''}" onclick="openModal(restaurants.find(x=>x.id==='${r.id}'))">
+    ${r.featured ? '<div class="featured-badge">⭐ Featured</div>' : ''}
+    <div class="r-img">
+      <span>${r.emoji}</span>
+      <div class="r-img-overlay"></div>
+      <div class="r-img-bottom">
+        <span class="r-rating">★ ${r.rating}</span>
+        <span class="r-eta">🕐 ${r.eta} min</span>
+      </div>
+    </div>
+    <div class="r-body">
+      <div class="r-name">${r.name}</div>
+      <div class="r-cuisine">${r.cuisine}</div>
+      <div class="r-meta">
+        <span class="dist-ring ${ring.cls}">📍 ${ring.label}</span>
+        <span class="r-tag"><span class="dot"></span> ₹${r.avgPrice} avg</span>
+        <span class="r-avail ${r.open?'open':'closed'}" style="margin-left:auto">
+          <span class="avail-dot ${r.open?'open':'closed'}"></span>
+          ${r.open ? 'Open now' : 'Closed'}
+        </span>
+      </div>
+    </div>
+    <div class="r-footer">
+      <div class="r-price">Avg order <strong>₹${r.avgPrice}</strong></div>
+      ${r.open
+        ? `<button class="r-order-btn" onclick="event.stopPropagation();openModal(restaurants.find(x=>x.id==='${r.id}'))">Order →</button>`
+        : `<span class="r-closed-btn">Opens later</span>`
+      }
+    </div>
+  </div>`;
+}
+
+function filterCards() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const near = restaurants.filter(r => r.dist <= 5 && (activeCat==='all'||r.cat===activeCat) && (r.name.toLowerCase().includes(q)||r.cuisine.toLowerCase().includes(q)||r.menu.some(m=>m.name.toLowerCase().includes(q))));
+  const far  = restaurants.filter(r => r.dist > 5  && (activeCat==='all'||r.cat===activeCat) && (r.name.toLowerCase().includes(q)||r.cuisine.toLowerCase().includes(q)||r.menu.some(m=>m.name.toLowerCase().includes(q))));
+  document.getElementById('cards-container').innerHTML = near.length ? near.map(renderCard).join('') : '<div style="padding:20px;text-align:center;color:#4A443C;font-size:13px">No restaurants match</div>';
+  document.getElementById('cards-far').innerHTML = far.length ? far.map(renderCard).join('') : '<div style="padding:20px;text-align:center;color:#4A443C;font-size:13px">No restaurants in this range</div>';
+}
+
+function filterCat(cat, el) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  filterCards();
+}
+
+function openModal(r) {
+  if (!r) return;
+  cartTotal = 0; cartItems = 0;
+  updateCart();
+  document.getElementById('modal-header').innerHTML = `
+    <div class="modal-subdomain">${r.slug}.localorder.in</div>
+    <div class="modal-name">${r.name}</div>
+    <div class="modal-meta">★ ${r.rating} · ${r.cuisine} · ${r.dist} km away · ${r.eta} min</div>`;
+  let menuHtml = '<div class="modal-section">Menu</div>';
+  r.menu.forEach((item,i) => {
+    menuHtml += `<div class="menu-item">
+      <div class="menu-item-info">
+        <div class="menu-item-name">${item.name}</div>
+        <div class="menu-item-desc">${item.desc}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="menu-item-price">₹${item.price}</div>
+        <button class="menu-item-add" onclick="addItem(${item.price})">+ Add</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('modal-content').innerHTML = menuHtml;
+  document.getElementById('modal').classList.add('open');
+}
+
+function addItem(price) {
+  cartTotal += price; cartItems++;
+  updateCart();
+  showToast('✓ Added to cart');
+}
+
+function updateCart() {
+  document.getElementById('cart-summary').innerHTML =
+    cartItems > 0
+      ? `${cartItems} item${cartItems>1?'s':''} · <strong>₹${cartTotal}</strong>`
+      : `0 items · <strong>₹0</strong>`;
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function showToast(msg, dur=2400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// Initial render
+filterCards();
+</script>
+</body>
+</html>
